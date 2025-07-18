@@ -1,4 +1,4 @@
-FROM ghcr.io/hassio-addons/base-python:3.11
+FROM python:3.11-alpine
 
 RUN apk add --no-cache \
     chromium \
