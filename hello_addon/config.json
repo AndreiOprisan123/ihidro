@@ -1,0 +1,13 @@
+{
+  "name": "Hello Addon",
+  "version": "1.0.0",
+  "slug": "hello_addon",
+  "description": "Un addon simplu care scrie Hello în log.",
+  "startup": "once",
+  "boot": "manual",
+  "hassio_api": false,
+  "host_network": false,
+  "privileged": [],
+  "arch": ["amd64", "aarch64", "armv7"],
+  "image": "local/hello_addon"
+}
