@@ -1,7 +1,7 @@
 {
-  "name": "iHidro",
+  "name": "iHidro Scraper",
+  "slug": "ihidro_scraper",
   "version": "1.0.0",
-  "slug": "ihidro",
   "description": "Preia perioada de transmitere index de la ihidro.ro",
   "webui": "",
   "startup": "once",
