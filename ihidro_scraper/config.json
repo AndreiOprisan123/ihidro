@@ -10,7 +10,7 @@
   "host_network": true,
   "privileged": [],
   "arch": ["amd64", "aarch64", "armv7"],
-  "image": "https://github.githubassets.com/favicons/favicon-dark.png",
+  "image": "local/ihidro_scraper",
   "options": {
     "username": "USERNAME_TAU_IHIDRO",
     "password": "PAROLA_TA_IHIDRO"
