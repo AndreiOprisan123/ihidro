@@ -9,6 +9,8 @@
   "hassio_api": false,
   "host_network": true,
   "privileged": [],
+  "arch": ["amd64", "aarch64", "armv7"],
+  "image": "https://github.githubassets.com/favicons/favicon-dark.png",
   "options": {
     "username": "USERNAME_TAU_IHIDRO",
     "password": "PAROLA_TA_IHIDRO"
