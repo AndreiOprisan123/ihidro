@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "Preia perioada de transmitere index de la ihidro.ro",
   "webui": "",
+  "panel_icon": "mdi:water",
   "startup": "once",
   "boot": "manual",
   "hassio_api": false,
