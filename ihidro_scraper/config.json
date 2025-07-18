@@ -1,0 +1,23 @@
+{
+  "name": "iHidro Scraper",
+  "version": "1.0.0",
+  "slug": "ihidro_scraper",
+  "description": "Add-on pentru extragerea perioadei de transmitere index de pe ihidro.ro",
+  "startup": "once",
+  "boot": "manual",
+  "hassio_api": false,
+  "homeassistant_api": false,
+  "host_network": true,
+  "privileged": [],
+  "arch": ["amd64", "aarch64", "armv7"],
+  "image": "local/ihidro_scraper",
+  "options": {
+    "username": "",
+    "password": ""
+  },
+  "schema": {
+    "username": "str",
+    "password": "str"
+  },
+  "panel_icon": "mdi:water"
+}
