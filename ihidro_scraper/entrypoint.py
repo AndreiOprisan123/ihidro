@@ -30,7 +30,7 @@ try:
     time.sleep(2)
     driver.find_element(By.ID, "txtLogin").send_keys(username)
     driver.find_element(By.ID, "txtpwd").send_keys(password)
-    driver.find_element(By.ID, "btnlogin").click()
+    driver.find_element(By.ID, "form2").submit()
     time.sleep(4)
 
     driver.get("https://ihidro.ro/portal/Dashboard.aspx")
