@@ -10,7 +10,6 @@
   "host_network": true,
   "privileged": [],
   "arch": ["amd64", "aarch64", "armv7"],
-  "image": "local/ihidro_scraper",
   "options": {
     "username": "",
     "password": ""
