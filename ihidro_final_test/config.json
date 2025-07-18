@@ -1,0 +1,23 @@
+{
+  "name": "iHidro Scraper FINAL",
+  "slug": "ihidro_final_test",
+  "version": "1.0.0",
+  "description": "Preia perioada de transmitere index de la ihidro.ro",
+  "webui": "",
+  "panel_icon": "mdi:water",
+  "startup": "once",
+  "boot": "manual",
+  "hassio_api": false,
+  "host_network": true,
+  "privileged": [],
+  "arch": ["amd64", "aarch64", "armv7"],
+  "image": "local/ihidro_scraper",
+  "options": {
+    "username": "USERNAME_TAU_IHIDRO",
+    "password": "PAROLA_TA_IHIDRO"
+  },
+  "schema": {
+    "username": "str",
+    "password": "str"
+  }
+}
