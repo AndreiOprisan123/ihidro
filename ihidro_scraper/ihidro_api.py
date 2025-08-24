@@ -5,6 +5,7 @@ It handles making web requests, managing state, and parsing data.
 import logging
 import json
 from typing import Any, Dict
+import datetime # A fost adăugat pentru a obține data curentă
 
 # Home Assistant recommends using aiohttp for async web requests.
 import aiohttp
@@ -147,6 +148,9 @@ class IhidroApi:
                 serial_number = soup.find("td", {"data-th": "Serie contor"}).text.strip()
                 prev_mr_result = soup.find("td", {"data-th": "Ultimul index citit de distribuitor"}).text.strip()
                 
+            # Obținem data curentă și o formatăm.
+            current_date = datetime.date.today().strftime("%d/%m/%Y")
+
             # --- Pasul 2: Crearea payload-ului JSON ---
             payload = { 
                 "objMeterValueProxy": {
@@ -154,7 +158,7 @@ class IhidroApi:
                         {
                             "POD": pod,
                             "SerialNumber": serial_number,
-                            "NewMeterReadDate": "24/08/2025", # Poți automatiza această dată
+                            "NewMeterReadDate": current_date, # S-a înlocuit data fixă cu data curentă
                             "registerCat": "1.8.0",
                             "distributor": "E-Distributie Muntenia Nord", # Poți extrage și această valoare
                             "meterInterval": "",
