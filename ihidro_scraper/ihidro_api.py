@@ -3,10 +3,14 @@ This file contains the core logic for the iHidro Scraper.
 It handles making web requests, managing state, and parsing data.
 """
 import logging
+import json
 from typing import Any, Dict
 
 # Home Assistant recommends using aiohttp for async web requests.
 import aiohttp
+import asyncio
+from bs4 import BeautifulSoup
+from aiohttp import ClientTimeout
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,6 +31,7 @@ class IhidroApi:
         self._password = password
         self._session: aiohttp.ClientSession | None = None
         self._is_logged_in = False
+        self._timeout = ClientTimeout(total=60) # Timeout pentru cererile web
 
     async def async_login(self) -> bool:
         """
@@ -38,18 +43,26 @@ class IhidroApi:
             self._session = aiohttp.ClientSession()
 
         try:
-            # Here, add your logic for the login request.
-            # Example:
-            # login_url = "https://your.ihidro.login.url/api/login"
-            # payload = {"username": self._username, "password": self._password}
-            # async with self._session.post(login_url, data=payload) as resp:
-            #     resp.raise_for_status()
-            #     # Check the response to see if login was successful
-            #     self._is_logged_in = True
-            
-            _LOGGER.info("Login successful (placeholder).")
-            self._is_logged_in = True
-            return True
+            # Aici vei face cererea POST către URL-ul de login
+            login_url = "https://ihidro.ro/portal/default.aspx"
+            payload = {
+                "txtLogin": self._username,
+                "txtpwd": self._password
+            }
+
+            async with self._session.post(login_url, data=payload, timeout=self._timeout) as resp:
+                resp.raise_for_status()
+                # Aici verifici dacă login-ul a fost un succes
+                # Poți verifica un text specific de pe pagina de după login.
+                html_content = await resp.text()
+                if "titleRR2" in html_content:
+                    self._is_logged_in = True
+                    _LOGGER.info("Login successful.")
+                    return True
+                else:
+                    _LOGGER.error("Login failed: Username or password incorrect.")
+                    self._is_logged_in = False
+                    return False
 
         except aiohttp.ClientError as e:
             _LOGGER.error(f"Login failed: {e}")
@@ -71,36 +84,46 @@ class IhidroApi:
         _LOGGER.info("Scraping data from iHidro.")
 
         try:
-            # Here, you'll put your existing scraping logic to get the values.
-            # Use `self._session.get()` or `self._session.post()`
-            # Example:
-            # data_url = "https://your.ihidro.data.url/dashboard"
-            # async with self._session.get(data_url) as resp:
-            #     resp.raise_for_status()
-            #     html_content = await resp.text()
-            #     # Use a library like BeautifulSoup to parse the HTML
-            #     # from bs4 import BeautifulSoup
-            #     # soup = BeautifulSoup(html_content, 'html.parser')
-            #     # scraped_period = soup.find("div", class_="period-class").text
-            #     # scraped_text = soup.find("p", class_="invoice-text").text
-            #     
-            #     # Return the data in a dictionary format.
-            #     return {
-            #         "perioada_transmitere_index": scraped_period,
-            #         "text_factura": scraped_text
-            #     }
+            data_url = "https://ihidro.ro/portal/default.aspx"
+            async with self._session.get(data_url, timeout=self._timeout) as resp:
+                resp.raise_for_status()
+                html_content = await resp.text()
+                
+                soup = BeautifulSoup(html_content, 'html.parser')
+                
+                # Extrage perioada de transmitere a indexului
+                perioade_el = soup.find(id="titleRR2")
+                text_index = perioade_el.text.strip() if perioade_el else ""
 
-            # Placeholder data to demonstrate the structure
-            return {
-                "perioada_transmitere_index": "10-25 a lunii",
-                "text_factura": "Factura nr. 12345, valoare: 100 RON"
-            }
+                # Extrage textul facturilor
+                facturi_de_plata_el = soup.find(id="dvCrDr")
+                text_factura = facturi_de_plata_el.text.strip() if facturi_de_plata_el else ""
+                
+                is_period_active = "TRANSMITE INDEXUL" in text_index.upper()
+                perioada_index = ""
+                
+                if is_period_active:
+                    perioada_index_list = text_index.split(" ")
+                    try:
+                        perioada_index = f"{perioada_index_list[-3]} - {perioada_index_list[-1]}"
+                    except IndexError:
+                        perioada_index = text_index # Fallback la textul complet
+                else:
+                    perioada_index = "Perioada de transmitere este închisă."
+
+                data = {
+                    "perioada_transmitere_index": perioada_index,
+                    "text_factura": text_factura,
+                    "este_perioada_de_trimitere": is_period_active
+                }
+                
+                return data
             
         except aiohttp.ClientError as e:
             _LOGGER.error(f"Failed to scrape data: {e}")
             return None
             
-    async def transmit_index(self) -> bool:
+    async def transmit_index(self, index_value: str) -> bool:
         """
         Sends the index to the iHidro service.
         This method will be called by the `submit_index` service.
@@ -109,20 +132,61 @@ class IhidroApi:
             if not await self.async_login():
                 return False
 
-        _LOGGER.info("Transmitting index to iHidro.")
+        _LOGGER.info(f"Transmitting index '{index_value}' to iHidro.")
         try:
-            # Here, add the logic to make the POST request to submit the index.
-            # This is where your existing logic for sending the index goes.
-            # You might need to add a parameter for the index value itself.
-            # Example:
-            # transmit_url = "https://your.ihidro.transmit.url/api/submit"
-            # payload = {"index_value": 1234} # Placeholder value
-            # async with self._session.post(transmit_url, data=payload) as resp:
-            #    resp.raise_for_status()
-            #    # Check the response for success confirmation
+            # --- Pasul 1: Scraping pentru datele necesare în payload ---
+            transmit_page_url = "https://ihidro.ro/portal/SelfMeterReading.aspx"
+            async with self._session.get(transmit_page_url) as resp:
+                resp.raise_for_status()
+                html_content = await resp.text()
+                soup = BeautifulSoup(html_content, 'html.parser')
+
+                # Extragem valorile din tabelul de pe pagină
+                # (ex. POD, SerialNumber, etc.)
+                pod = soup.find("td", {"data-th": "POD"}).text.strip()
+                serial_number = soup.find("td", {"data-th": "Serie contor"}).text.strip()
+                prev_mr_result = soup.find("td", {"data-th": "Ultimul index citit de distribuitor"}).text.strip()
+                
+            # --- Pasul 2: Crearea payload-ului JSON ---
+            payload = { 
+                "objMeterValueProxy": {
+                    "UsageSelfMeterReadEntity": [
+                        {
+                            "POD": pod,
+                            "SerialNumber": serial_number,
+                            "NewMeterReadDate": "24/08/2025", # Poți automatiza această dată
+                            "registerCat": "1.8.0",
+                            "distributor": "E-Distributie Muntenia Nord", # Poți extrage și această valoare
+                            "meterInterval": "",
+                            "supplier": "",
+                            "distCustomer": "",
+                            "distCustomerId": "",
+                            "distContract": "",
+                            "distContractDate": None,
+                            "UtilityAccountNumber": "8001141409",
+                            "prevMRResult": prev_mr_result,
+                            "newmeterread": index_value
+                        }
+                    ]
+                }
+            }
             
-            _LOGGER.info("Index transmitted successfully (placeholder).")
-            return True
+            # --- Pasul 3: Trimiterea cererii POST cu JSON-ul ---
+            headers = {'Content-Type': 'application/json'}
+            post_url = "https://ihidro.ro/portal/SelfMeterReading.aspx/GetMeterValueRequest"
+            
+            async with self._session.post(post_url, data=json.dumps(payload), headers=headers, timeout=self._timeout) as resp:
+                resp.raise_for_status()
+                response_json = await resp.json()
+                
+                # Verifică răspunsul
+                if "success" in response_json and response_json["success"]:
+                    _LOGGER.info(f"Indexul '{index_value}' a fost transmis cu succes.")
+                    return True
+                else:
+                    _LOGGER.error("Transmisie index eșuată. Răspunsul serverului nu a fost cel așteptat.")
+                    _LOGGER.debug(f"Răspuns server: {response_json}")
+                    return False
 
         except aiohttp.ClientError as e:
             _LOGGER.error(f"Failed to transmit index: {e}")
