@@ -1,0 +1,13 @@
+{
+  "domain": "ihidro_scraper",
+  "name": "iHidro Scraper",
+  "version": "1.0.0",
+  "documentation": "https://github.com/AndreiOprisan123/ihidro/blob/main/ihidro_scraper/README.md",
+  "issue_tracker": "https://github.com/AndreiOprisan123/ihidro/issues",
+  "codeowners": ["@AndreiOprisan123"],
+  "config_flow": true,
+  "requirements": [
+    "beautifulsoup4",
+    "aiohttp"
+  ]
+}
