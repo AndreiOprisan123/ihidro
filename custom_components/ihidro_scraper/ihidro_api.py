@@ -41,6 +41,7 @@ class IhidroApi:
         """
         _LOGGER.info("Attempting to log in to iHidro.")
         if self._session is None:
+            # Creăm o sesiune persistentă pentru a gestiona cookies-urile
             self._session = aiohttp.ClientSession()
 
         try:
@@ -51,17 +52,15 @@ class IhidroApi:
                 "txtpwd": self._password
             }
 
-            async with self._session.post(login_url, data=payload, timeout=self._timeout) as resp:
+            async with self._session.post(login_url, data=payload, timeout=self._timeout, allow_redirects=False) as resp:
                 resp.raise_for_status()
-                # Aici verifici dacă login-ul a fost un succes
-                # Poți verifica un text specific de pe pagina de după login.
-                html_content = await resp.text()
-                if "titleRR2" in html_content:
+                # Aici verificăm dacă a avut loc o redirecționare (302)
+                if resp.status == 302:
                     self._is_logged_in = True
-                    _LOGGER.info("Login successful.")
+                    _LOGGER.info("Login successful. Received redirect.")
                     return True
                 else:
-                    _LOGGER.error("Login failed: Username or password incorrect.")
+                    _LOGGER.error("Login failed: Unexpected status code.")
                     self._is_logged_in = False
                     return False
 
