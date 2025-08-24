@@ -45,14 +45,24 @@ class IhidroApi:
             self._session = aiohttp.ClientSession()
 
         try:
-            # Aici vei face cererea POST către URL-ul de login
+            # Pasul 1: Obținem token-ul de securitate
             login_url = "https://ihidro.ro/portal/default.aspx"
+            async with self._session.get(login_url, timeout=self._timeout, ssl=False) as resp:
+                resp.raise_for_status()
+                html_content = await resp.text()
+                soup = BeautifulSoup(html_content, 'html.parser')
+                viewstate = soup.find('input', {'name': '__VIEWSTATE'})['value'] if soup.find('input', {'name': '__VIEWSTATE'}) else ""
+
+            # Pasul 2: Creăm payload-ul cu token-ul și credențialele
             payload = {
+                "__VIEWSTATE": viewstate,
                 "txtLogin": self._username,
-                "txtpwd": self._password
+                "txtpwd": self._password,
+                "btnlogin": "Login"
             }
 
-            async with self._session.post(login_url, data=payload, timeout=self._timeout, allow_redirects=False) as resp:
+            # Pasul 3: Trimiterea cererii POST de login
+            async with self._session.post(login_url, data=payload, timeout=self._timeout, allow_redirects=False, ssl=False) as resp:
                 resp.raise_for_status()
                 # Aici verificăm dacă a avut loc o redirecționare (302)
                 if resp.status == 302:
@@ -61,6 +71,7 @@ class IhidroApi:
                     return True
                 else:
                     _LOGGER.error("Login failed: Unexpected status code.")
+                    _LOGGER.debug(f"Response status: {resp.status}, Response text: {await resp.text()}")
                     self._is_logged_in = False
                     return False
 
@@ -85,7 +96,7 @@ class IhidroApi:
 
         try:
             data_url = "https://ihidro.ro/portal/default.aspx"
-            async with self._session.get(data_url, timeout=self._timeout) as resp:
+            async with self._session.get(data_url, timeout=self._timeout, ssl=False) as resp:
                 resp.raise_for_status()
                 html_content = await resp.text()
                 
@@ -136,7 +147,7 @@ class IhidroApi:
         try:
             # --- Pasul 1: Scraping pentru datele necesare în payload ---
             transmit_page_url = "https://ihidro.ro/portal/SelfMeterReading.aspx"
-            async with self._session.get(transmit_page_url) as resp:
+            async with self._session.get(transmit_page_url, ssl=False) as resp:
                 resp.raise_for_status()
                 html_content = await resp.text()
                 soup = BeautifulSoup(html_content, 'html.parser')
@@ -178,7 +189,7 @@ class IhidroApi:
             headers = {'Content-Type': 'application/json'}
             post_url = "https://ihidro.ro/portal/SelfMeterReading.aspx/GetMeterValueRequest"
             
-            async with self._session.post(post_url, data=json.dumps(payload), headers=headers, timeout=self._timeout) as resp:
+            async with self._session.post(post_url, data=json.dumps(payload), headers=headers, timeout=self._timeout, ssl=False) as resp:
                 resp.raise_for_status()
                 response_json = await resp.json()
                 
